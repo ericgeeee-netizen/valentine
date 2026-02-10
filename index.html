@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Be My Valentine?</title>
   <style>
-    :root { --yesScale: 1; }
-
     body {
       margin: 0;
       min-height: 100vh;
@@ -18,8 +16,8 @@
     }
 
     .card {
-      width: min(520px, 92vw);
-      background: rgba(255,255,255,0.9);
+      width: min(560px, 94vw);
+      background: rgba(255,255,255,0.92);
       border: 1px solid rgba(0,0,0,0.06);
       border-radius: 18px;
       padding: 18px 18px 22px;
@@ -40,8 +38,8 @@
     }
 
     .topGif {
-      width: 160px;
-      height: 160px;
+      width: 155px;
+      height: 155px;
       object-fit: contain;
       display: block;
       margin: 4px auto 6px;
@@ -57,63 +55,79 @@
     p {
       margin: 0 0 14px;
       opacity: 0.75;
+      font-weight: 600;
     }
 
-    .buttons {
-      position: relative;
-      height: 190px;
-      display: grid;
-      place-items: center;
-      margin-top: 4px;
-      touch-action: manipulation;
+    .buttonRow {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;            /* prevents overlap on small screens */
+      margin-top: 10px;
     }
 
     button {
       border: none;
       cursor: pointer;
-      padding: 14px 22px;
       border-radius: 14px;
-      font-size: 18px;
-      font-weight: 850;
-      transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+      font-weight: 900;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      white-space: nowrap;
+      white-space: nowrap;        /* keeps phrases on one line */
+      max-width: 100%;
     }
 
-    #yesBtn {
-      background: #ff2d6f;
-      color: white;
-      box-shadow: 0 10px 22px rgba(255, 45, 111, 0.25);
-      position: absolute;
-      left: 50%;
-      top: 45%;
-      transform: translate(-50%, -50%) scale(var(--yesScale));
-      z-index: 2;
-    }
-
+    /* NO stays readable */
     #noBtn {
       background: #f1f1f1;
       color: #222;
       box-shadow: 0 10px 22px rgba(0,0,0,0.08);
-      position: absolute;
-      left: 50%;
-      top: 82%;
-      transform: translate(-50%, -50%);
-      z-index: 1;
+      font-size: 16px;
+      padding: 12px 16px;
+      min-width: 140px;
+    }
+
+    /* YES grows by size/padding (no overlap) */
+    #yesBtn {
+      background: #ff2d6f;
+      color: white;
+      box-shadow: 0 10px 22px rgba(255, 45, 111, 0.25);
+      font-size: 18px;
+      padding: 14px 20px;
+      min-width: 140px;
+      transition: font-size 180ms ease, padding 180ms ease, transform 180ms ease;
+    }
+
+    /* Optional little pop effect */
+    .pop {
+      transform: translateY(-1px);
     }
 
     .msg {
-      margin-top: 12px;
+      margin-top: 14px;
       min-height: 26px;
-      font-weight: 800;
+      font-weight: 900;
       color: #ff2d6f;
     }
 
     .yesScene {
       display: none;
-      margin-top: 10px;
-      padding-top: 8px;
+      margin-top: 12px;
+      padding-top: 6px;
+    }
+
+    .yesHeadline {
+      font-size: 22px;
+      margin: 6px 0 2px;
+      color: #ff2d6f;
+      font-weight: 1000;
+    }
+
+    .sub {
+      margin: 0;
+      opacity: 0.75;
+      font-weight: 700;
     }
 
     .kissGif {
@@ -122,19 +136,6 @@
       box-shadow: 0 14px 34px rgba(0,0,0,0.14);
       display: block;
       margin: 10px auto 0;
-    }
-
-    .yesHeadline {
-      font-size: 22px;
-      margin: 6px 0 2px;
-      color: #ff2d6f;
-      font-weight: 900;
-    }
-
-    .sub {
-      margin: 0;
-      opacity: 0.75;
-      font-weight: 700;
     }
   </style>
 </head>
@@ -152,7 +153,7 @@
     <h1>Be my Valentine? 💘</h1>
     <p>Choose wisely 😌</p>
 
-    <div class="buttons" id="arena">
+    <div class="buttonRow">
       <button id="yesBtn" type="button">Yes</button>
       <button id="noBtn" type="button">No</button>
     </div>
@@ -178,12 +179,11 @@
       const yesBtn = document.getElementById("yesBtn");
       const noBtn  = document.getElementById("noBtn");
       const msg    = document.getElementById("msg");
-      const arena  = document.getElementById("arena");
       const yesScene = document.getElementById("yesScene");
 
       const MAX_NO_CLICKS = 10;
 
-      // EXACT messages you requested (also used as the No button label)
+      // Exact phrases you requested (also becomes the NO button text)
       const noPhrases = [
         "are you sure",
         "are you sure youre sure",
@@ -197,96 +197,59 @@
         "last chance"
       ];
 
+      // More dramatic YES growth (index = number of No clicks)
+      const yesSizes = [
+        { fs: 18, py: 14, px: 20 }, // 0
+        { fs: 22, py: 16, px: 26 }, // 1
+        { fs: 26, py: 18, px: 34 }, // 2
+        { fs: 30, py: 20, px: 42 }, // 3
+        { fs: 34, py: 22, px: 52 }, // 4
+        { fs: 38, py: 24, px: 62 }, // 5
+        { fs: 42, py: 26, px: 72 }, // 6
+        { fs: 46, py: 28, px: 82 }, // 7
+        { fs: 50, py: 30, px: 92 }, // 8
+        { fs: 54, py: 32, px: 102 }, // 9
+        { fs: 58, py: 34, px: 112 }  // 10
+      ];
+
       let noClicks = 0;
 
-      function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+      function applyYesSize() {
+        const s = yesSizes[Math.min(noClicks, yesSizes.length - 1)];
+        yesBtn.style.fontSize = s.fs + "px";
+        yesBtn.style.padding = `${s.py}px ${s.px}px`;
 
-      function setYesScale(scale) {
-        document.documentElement.style.setProperty("--yesScale", String(scale.toFixed(2)));
+        // tiny pop
+        yesBtn.classList.add("pop");
+        setTimeout(() => yesBtn.classList.remove("pop"), 160);
       }
 
-      function moveNoButton() {
-        const w = arena.clientWidth;
-        const h = arena.clientHeight;
-
-        const btnW = noBtn.offsetWidth;
-        const btnH = noBtn.offsetHeight;
-
-        const padding = 10;
-        const maxX = Math.max(padding, w - btnW - padding);
-        const maxY = Math.max(padding, h - btnH - padding);
-
-        const x = clamp(Math.random() * maxX, padding, maxX);
-        const y = clamp(Math.random() * maxY, padding, maxY);
-
-        noBtn.style.left = `${x}px`;
-        noBtn.style.top  = `${y}px`;
-        noBtn.style.transform = "translate(0, 0)";
-      }
-
-      function growYes() {
-        // Progressive growth each No click
-        const scale = Math.min(1 + noClicks * 0.25, 3.6);
-        setYesScale(scale);
-      }
-
-      // Initial message
+      // initial
       msg.textContent = "";
+      applyYesSize();
 
-      // Place NO randomly after layout measures are ready
-      requestAnimationFrame(() => moveNoButton());
-
-      // Desktop: run away on hover (mouse only)
-      noBtn.addEventListener("pointerenter", (e) => {
-        if (e.pointerType === "mouse" && noClicks < MAX_NO_CLICKS) moveNoButton();
-      });
-
-      // Phone: run away on press/hold (quick taps still click)
-      let holdTimer = null;
-      noBtn.addEventListener("touchstart", () => {
-        if (noClicks >= MAX_NO_CLICKS) return;
-        clearTimeout(holdTimer);
-        holdTimer = setTimeout(() => {
-          if (noClicks < MAX_NO_CLICKS) moveNoButton();
-        }, 140);
-      }, { passive: true });
-
-      noBtn.addEventListener("touchend", () => clearTimeout(holdTimer), { passive: true });
-
-      // NO click logic
       noBtn.addEventListener("click", () => {
         if (noClicks >= MAX_NO_CLICKS) return;
 
         noClicks++;
 
-        // Update the No button label + message area with requested phrase
         const phrase = noPhrases[noClicks - 1] || "last chance";
         noBtn.textContent = phrase;
         msg.textContent = phrase;
 
-        // Grow YES
-        growYes();
+        applyYesSize();
 
-        // After 10th click: remove NO button entirely
         if (noClicks >= MAX_NO_CLICKS) {
+          // After 10th click: remove NO button, leaving only YES
           noBtn.remove();
-          return;
         }
-
-        // Otherwise, keep moving NO around
-        moveNoButton();
       });
 
-      // YES click logic
       yesBtn.addEventListener("click", () => {
         msg.textContent = "YAYYYY 💖 It’s a date, Valentine 😘";
         yesScene.style.display = "block";
-
-        // Lock YES so it feels final
         yesBtn.disabled = true;
-        yesBtn.style.opacity = 0.95;
-
-        setYesScale(3.2);
+        yesBtn.style.opacity = "0.96";
       });
     });
   </script>
